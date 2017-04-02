@@ -8,9 +8,9 @@ en `../Documentos`, se encuentra un archivo en MarkDown describiendo los avances
 
 en `.` se encuentra éste documento y una carpeta `src`, conteniendo el código fuente de [PintOS](http://web.stanford.edu/class/cs140/projects/pintos/pintos.html)
 
-## en el código fuente de PintOS
-
 en `../thread` se encuentra el código fuente de la aplicación usada para probar los algoritmos con múltiples hilos de ejecución
+
+## en el código fuente de PintOS
 
 en `src/threads` se encuentra el código fuente del kernel de pintos
 
