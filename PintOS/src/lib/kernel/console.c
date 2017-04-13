@@ -186,6 +186,11 @@ putchar_have_lock (uint8_t c)
 {
   ASSERT (console_locked_by_current_thread ());
   write_cnt++;
+  #ifdef MIRROR_CONSOLE_TO_SERIAL_PORT
+  // turn LF into CRLF
+  if (c == '\n')
+    serial_putc ('\r');
   serial_putc (c);
-  vga_putc (c);
+  #endif
+    vga_putc (c);
 }
