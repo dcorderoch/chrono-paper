@@ -34,7 +34,7 @@ test -e ${BUILDDIR}/kernel.bin || echo 'No kernel found in ' ${BUILDDIR}
 # For a P3 kernel, you should also create a swap disk via
 # --swap-size=4
 #
-pintos -v -k --qemu \
+pintos -k --qemu \
         --make-disk ${DISKIMAGE} \
         --filesys-size=4 \
         --loader ${BUILDDIR}/loader.bin \
