@@ -251,6 +251,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
+  if (thread_sjf)
+    list_insert_ordered (&ready_list, &t->elem, thread_brust_greater, NULL);
+  else
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -344,6 +347,22 @@ thread_foreach (thread_action_func *func, void *aux)
       func (t, aux);
     }
 }
+
+
+/* Sets the current thread's burst_time to NEW_TIME. */
+void
+thread_set_burst_time (int new_time) 
+{
+  thread_current ()->burst_time = new_time;
+}
+
+/* Returns the current thread's burst_time. */
+int
+thread_get_burst_time (void) 
+{
+  return thread_current ()->burst_time;
+}
+
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
@@ -549,6 +568,17 @@ thread_schedule_tail (struct thread *prev)
       ASSERT (prev != cur);
       palloc_free_page (prev);
     }
+}
+
+/* Compare brust time of two thread. */
+bool
+thread_brust_greater(const struct list_elem *a,
+                      const struct list_elem *b,
+                      void *aux UNUSED)
+{
+  struct thread *pta = list_entry (a, struct thread, elem);
+  struct thread *ptb = list_entry (b, struct thread, elem);
+  return pta->priority > ptb->priority;
 }
 
 /* Schedules a new process.  At entry, interrupts must be off and
