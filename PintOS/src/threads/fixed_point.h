@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <inttypes.h>
 /* Define "new type" fixed_t to use for fixed point calculations. */
 typedef int fixed_t;
 /* Bit shift amount to use for fixed point type. */
