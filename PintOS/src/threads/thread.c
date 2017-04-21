@@ -1,4 +1,5 @@
 #include "threads/thread.h"
+#include "threads/fixed_point.h"
 #include <debug.h>
 #include <stddef.h>
 #include <random.h>
@@ -52,7 +53,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
-#define ALPHA 1               /* # alpha factor used in sjf scheduler */
+static const fixed_t ALPHA= 0.5;/* # alpha factor used in sjf scheduler */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
 
@@ -599,7 +600,7 @@ bool
 int
 thread_burst_predict(struct thread *cur)
 {
-  int burst_time = ALPHA * thread_ticks + (1 - ALPHA) * cur->burst_time;
+  int burst_time = fp_addition(fp_times_int (ALPHA, thread_ticks), fp_times_int(fp_minus_int(fp_from_int(1), ALPHA), cur->burst_time));
   return burst_time;
 }
 
