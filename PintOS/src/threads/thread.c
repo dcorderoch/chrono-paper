@@ -52,7 +52,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
-#define ALPHA 0.5               /* # alpha factor sjf scheduler */
+#define ALPHA 0.5               /* # alpha factor used in sjf scheduler */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
 
@@ -570,15 +570,15 @@ thread_schedule_tail (struct thread *prev)
     }
 }
 
-/* Compare brust time of two thread. */
+/* Compare burst time of two threads. */
 bool
-thread_brust_greater(const struct list_elem *a,
+thread_burst_greater(const struct list_elem *a,
                       const struct list_elem *b,
                       void *aux UNUSED)
 {
-  struct thread *pta = list_entry (a, struct thread, elem);
-  struct thread *ptb = list_entry (b, struct thread, elem);
-  return pta->priority > ptb->priority;
+  struct thread *elementA = list_entry (a, struct thread, elem);
+  struct thread *elementB = list_entry (b, struct thread, elem);
+  return elementA->priority > elementB->priority;
 }
 
 /* Schedules a new process.  At entry, interrupts must be off and
