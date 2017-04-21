@@ -52,7 +52,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
-#define ALPHA 0.5               /* # alpha factor used in sjf scheduler */
+#define ALPHA 1               /* # alpha factor used in sjf scheduler */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
 
@@ -251,8 +251,11 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  if (thread_sjf)
-    list_insert_ordered (&ready_list, &t->elem, thread_brust_greater, NULL);
+  if (thread_sjf){
+    int thread_burst = thread_burst_predict (running_thread ()); 
+    thread_set_burst_time(t, thread_burst);
+    list_insert_ordered (&ready_list, &t->elem, thread_burst_greater, NULL);
+  }
   else
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
@@ -349,11 +352,11 @@ thread_foreach (thread_action_func *func, void *aux)
 }
 
 
-/* Sets the current thread's burst_time to NEW_TIME. */
+/* Sets the thread's burst_time to new_time. */
 void
-thread_set_burst_time (int new_time) 
+thread_set_burst_time (struct thread *t, int new_time) 
 {
-  thread_current ()->burst_time = new_time;
+  t->burst_time = new_time;
 }
 
 /* Returns the current thread's burst_time. */
@@ -494,6 +497,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->burst_time =0;
   list_push_back (&all_list, &t->allelem);
 }
 
@@ -572,13 +576,21 @@ thread_schedule_tail (struct thread *prev)
 
 /* Compare burst time of two threads. */
 bool
-thread_burst_greater(const struct list_elem *a,
+  thread_burst_greater(const struct list_elem *a,
                       const struct list_elem *b,
                       void *aux UNUSED)
 {
   struct thread *elementA = list_entry (a, struct thread, elem);
   struct thread *elementB = list_entry (b, struct thread, elem);
   return elementA->priority > elementB->priority;
+}
+
+/* Predict thread's burst time */
+int
+thread_burst_predict(struct thread *cur)
+{
+  int burst_time = ALPHA * thread_ticks + (1 - ALPHA) * cur->burst_time;
+  return burst_time;
 }
 
 /* Schedules a new process.  At entry, interrupts must be off and
