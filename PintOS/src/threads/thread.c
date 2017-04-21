@@ -116,6 +116,15 @@ thread_start (void)
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
+  if(thread_rr)
+    printf("Using round-robin scheduler\n");
+  else if(thread_fcfs)
+    printf("Using fcfs scheduler\n");
+  else if(thread_sjf)
+    printf("Using shortest job first scheduler\n");
+  else if(thread_mlfqs)
+    printf("Using mlfqs scheduler\n");
+
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
@@ -251,13 +260,14 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  if (thread_sjf){
-    int thread_burst = thread_burst_predict (running_thread ()); 
-    thread_set_burst_time(t, thread_burst);
-    list_insert_ordered (&ready_list, &t->elem, thread_burst_greater, NULL);
-  }
+  if (thread_sjf)
+    {
+      int thread_burst = thread_burst_predict (running_thread ()); 
+      thread_set_burst_time(t, thread_burst);
+      list_insert_ordered (&ready_list, &t->elem, thread_burst_greater, NULL);
+    }
   else
-  list_push_back (&ready_list, &t->elem);
+    list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
