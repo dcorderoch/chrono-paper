@@ -752,7 +752,7 @@ thread_schedule_tail (struct thread * previous_thread)
      pull out the rug under itself.  (We don't free
      initial_thread because its memory was not obtained via
      palloc().) */
-  if (previous_thread != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
+  if (previous_thread != NULL && previous_thread->status == THREAD_DYING && previous_thread != initial_thread) 
     {
       ASSERT (previous_thread != current_thread);
       palloc_free_page (previous_thread);
