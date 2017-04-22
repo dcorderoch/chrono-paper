@@ -339,9 +339,7 @@ thread_foreach (thread_action_func * func, void * aux)
     }
 }
 
-/* Sets the current thread's priority to NEW_PRIORITY.
-   If the priority is donated by another thread, it may
-   not change immediately. */
+/* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
 {
@@ -412,8 +410,7 @@ thread_donate_priority (struct thread * thread)
   intr_set_level (old_level);
 }
 
-/* Update thread's priority. This function only update
-   priority and do not preempt. */
+/* Update thread's priority. */
 void
 thread_update_priority (struct thread * thread)
 {
@@ -486,10 +483,18 @@ thread_mlfqs_calc_recent_cpu(struct thread * thread)
   ASSERT (thread_mlfqs);
   ASSERT (thread != idle_thread);
 
-  fixed_t coef = fp_divided_by_fp (fp_times_int (load_avg, 2),
-                        fp_add_int_and_fp (fp_times_int (load_avg, 2), 1));
-  fixed_t term = fp_times_fp (coef, thread->recent_cpu);
-  thread->recent_cpu = fp_add_int_and_fp (thread->nice, term);
+  /* formula: (2*load_avg)/(2*load_avg + 1) * recent_cpu + nice. */
+
+  int nice = thread->nice;
+  fixed_t threads_recent_cpu = thread->recent_cpu;
+  fixed_t numerator =   (fp_times_int (load_avg, 2));
+  fixed_t denominator = (fp_add_int_and_fp (1, numerator));
+
+  fixed_t frac = fp_divided_by_fp (numerator, denominator);
+  fixed_t all_but_nice = fp_times_fp (frac, thread->recent_cpu);
+  fixed_t final = fp_add_int_and_fp (nice, all_but_nice);
+
+  thread->recent_cpu = final;
 }
 
 /* Update thread's priority. */
