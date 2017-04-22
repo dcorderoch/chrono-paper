@@ -159,6 +159,7 @@ load_thread (void *seq_no_)
   int sleep_time = TIMER_FREQ * (10 + seq_no);
   int spin_time = sleep_time + TIMER_FREQ * THREAD_CNT;
   int exit_time = TIMER_FREQ * (THREAD_CNT * 2);
+  printf ("pid=%d\n", thread_tid ());
 
   timer_sleep (sleep_time - timer_elapsed (start_time));
   while (timer_elapsed (start_time) < spin_time)
