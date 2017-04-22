@@ -6,11 +6,10 @@
                    
 ---- GRUPO ----
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+David Cordero Chavarría <dcorderoch@gmail.com>
+Manuel Zumbado Corrales <manu3193@gmail.com>
 
-Calendarizador <tipo de calendarizador>
+Calendarizador <Advanced: BSD 4.4 scheduler, an example of a Multi-Level Feedbback Queue Scheduler>
 =======================================
 
 ---- Estructuras de datos ----
@@ -18,8 +17,18 @@ Calendarizador <tipo de calendarizador>
 >> Copie la declaracion de cada estructura nueva utilizada por su 
 codigo, variables globales o estaticas, `struct', `typedef', etc.
 
+typedef int fixed_t;
+
 >> Explique las estructuras citadas anteriormente en menos de 30 
 palabras cada una.
+
+tipo de dato para emular números de punto flotante
+según los anexos de la descripción del calendarizador
+avanzado de BSD4.4 basado en colas multinivel.
+
+más allá de ésto no fue necesario implementar estructuras, de datos
+pues con la estructura de lista proveida con PintOS, y algunas funciones
+de ordenamiento, se pueden emular colas, que son la única estructura necesaria
 
 
 ---- ALGORITMOS ----
@@ -27,6 +36,17 @@ palabras cada una.
 >> Explique en prosa el funcionamiento de su algoritmo, utilizando 
 el nombre de las variables utilizadas y funciones.
 
+se tiene una lista de todos los hilos que están listos para ejecutarse
+(ready_list) y en ésta se insertan los hilos ordenados por prioridad,
+además, cada segundo en timer.c se llama mlfqs_refresh que actualiza
+las prioridades de los hilos, para reordenar la cola según prioridad
+de mayor a menor
+
+la nueva prioridad se calcular usando la prioridad anterior,
+el tiempo reciente de cpu que se ha usado, y el `nice'
+
+el tiempo reciente del cpu se usa para evitar `starvation'
+pues, entre más alto sea, menor la prioridad calculada será
 
 ---- SYNC ----
 
@@ -34,6 +54,19 @@ el nombre de las variables utilizadas y funciones.
 thread_set_priority() y explique como su algoritmo lo resuelve. 
 Justifique por que un lock podria o no podria funcionar para este 
 algoritmo
+
+thread_set-priority ()
+se ejecuta cuando en los "estados de transición" de ejecución
+de los hilos, por lo que, podría ejecutarse justo en el instante
+en que un thread termina y debe tener su prioridad actualizada
+o en el que el siguiente thread comienza a correr, por lo que causaría
+que se actualice la prioridad del thread equivocado
+
+un lock podría funcionar si las operaciones de acceso a este son atómicas
+pero si no lo son no funcionarían, hay diferentes maneras de implementarlo
+y entre menos restricciones de hardware se tengan más complejas pueden ser,
+por ejemplo, usando locks y semáforos para un manejo más seguro de los accesos
+a costo de un poco de overhead
 
 ---- JUSTIFICACION ----
 >>Describa la razon por la que se decidio implementar este diseño 
@@ -43,4 +76,9 @@ algoritmo y describa como los cambios de contexto en este
 calendarizador y las reglas y politicas implementadas afectan el 
 desempeño del procesador.
 
-___________________________________________________________________
+dado que el sistema no ejecuta muchos hilos al mismo tiempo, se consideró
+innecesario usar una implementación con más de un nivel de colas
+éstas simplemente se insertan en una sóla estructura de datos,
+ésto pues se consideró que no se obtendría una gran ganancia en el
+rendimiento al hacer menos búsquedas con más estructuras, dado
+el relativamente bajo número de hilos._
