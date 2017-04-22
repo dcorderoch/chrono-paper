@@ -52,7 +52,7 @@ static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Scheduling. */
-#define TIME_SLICE 4            /* # of timer ticks to give each thread. */
+#define QUANTUM 6            /* # of timer ticks to give each thread. */
 static const fixed_t ALPHA= 0.5;/* # alpha factor used in sjf scheduler */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
@@ -151,7 +151,7 @@ thread_tick (void)
     kernel_ticks++;
 
   /* Enforce preemption. */
-  if (++thread_ticks >= TIME_SLICE)
+  if (++thread_ticks >= QUANTUM)
     intr_yield_on_return ();
 }
 
@@ -261,14 +261,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  if (thread_sjf)
-    {
-      int thread_burst = thread_burst_predict (running_thread ()); 
-      thread_set_burst_time(t, thread_burst);
-      list_insert_ordered (&ready_list, &t->elem, thread_burst_greater, NULL);
-    }
-  else
-    list_push_back (&ready_list, &t->elem);
+  list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -585,6 +578,21 @@ thread_schedule_tail (struct thread *prev)
     }
 }
 
+/* Function to print the tid of all queued threads. */
+void thread_print_init_queue (void)
+{
+  enum intr_level old_level;
+  old_level = intr_disable ();
+  thread_foreach (&thread_func_print_tid, NULL);
+  intr_set_level(old_level);
+}
+
+/* Print thread's tid. */
+void thread_func_print_tid(struct thread *t, void *aux UNUSED)
+{
+  printf("Thread %d in queue\n", t->tid);
+}
+
 /* Compare burst time of two threads. */
 bool
   thread_burst_greater(const struct list_elem *a,
@@ -593,15 +601,15 @@ bool
 {
   struct thread *elementA = list_entry (a, struct thread, elem);
   struct thread *elementB = list_entry (b, struct thread, elem);
-  return elementA->priority > elementB->priority;
+  return elementA->burst_time < elementB->burst_time;
 }
 
 /* Predict thread's burst time */
 int
 thread_burst_predict(struct thread *cur)
 {
-  int burst_time = fp_addition(fp_times_int (ALPHA, thread_ticks), fp_times_int(fp_minus_int(fp_from_int(1), ALPHA), cur->burst_time));
-  return burst_time;
+  fixed_t burst_time = fp_addition(fp_times_int (ALPHA, thread_ticks), fp_times_int(fp_minus_fp(fp_from_int(1), ALPHA), cur->burst_time));
+  return from_fp_round_nearest(burst_time);
 }
 
 /* Schedules a new process.  At entry, interrupts must be off and
@@ -615,6 +623,13 @@ static void
 schedule (void) 
 {
   struct thread *cur = running_thread ();
+  if (thread_sjf && !list_empty(&ready_list))
+    {
+      int thread_burst = thread_burst_predict (cur); 
+      struct thread *thread_to_set_burst_time = list_entry( list_front (&ready_list), struct thread, elem);
+      thread_set_burst_time(thread_to_set_burst_time, thread_burst);
+      list_sort(&ready_list,thread_burst_greater, NULL);
+    }
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
 

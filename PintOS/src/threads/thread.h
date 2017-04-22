@@ -146,4 +146,6 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 bool thread_burst_greater(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
+void thread_print_init_queue (void);
+void thread_func_print_tid(struct thread *t, void *aux UNUSED);
 #endif /* threads/thread.h */
