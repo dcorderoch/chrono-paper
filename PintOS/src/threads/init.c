@@ -276,7 +276,61 @@ parse_options (char **argv)
   
   return argv;
 }
+/* Test by El David */
+/* When calling the pintos script, the correct usage is:
+   ./pintos -mlfqs pruebahilos -t 12 -p 12
+   ./pintos -mlfqs pruebahilos -t 12 -b 5
+   any incorrect input will cause a shutdown. */
+static void
+run_elda_test (char ** argv)
+{
+  const char * arguments = argv;
+  int number_of_arguments = 0;
+  bool is_percentage = false;
+  int i;
+  for(i = 0; argv[i] != NULL ; i++)
+    {
+      number_of_arguments++;
+    }
+  printf ("the number of arguments was:%d\n", number_of_arguments);
+  if (number_of_arguments != 5 )
+    {
+      printf ("wrong number of arguments\n");
+      shutdown_power_off ();
+    }
+  if(!(strcmp (argv[0],"-t"))
+     || !(strcmp (argv[2],"-b"))
+     || !(strcmp (argv[2],"-p")))
+    {
+      printf ("program was started incorrectly\n"); 
+      shutdown_power_off ();
+    }
+  int first_arg = atoi(argv[1]);
+  int second_arg = atoi(argv[3]);
 
+  if(first_arg > 25)
+    {
+      printf("you're asking for too many threads dude\n");
+      shutdown_power_off ();
+    }
+  
+  is_percentage = strcmp("-p", argv[2]);
+
+  if (is_percentage && second_arg > 100)
+    {
+      printf("it can only be up to 100%%\n");
+      shutdown_power_off ();
+    }
+  if (!is_percentage && second_arg > first_arg)
+    {
+      printf ("there can't be a bigger number of the sub-type of threads\n");
+    }
+
+  int total_threads = first_arg;
+  int io_threads = (is_percentage) ? first_arg * second_arg / 100 : second_arg ;
+
+  shutdown_power_off ();
+}
 /* Runs the task specified in ARGV[1]. */
 static void
 run_task (char **argv)
@@ -309,6 +363,7 @@ run_actions (char **argv)
   static const struct action actions[] = 
     {
       {"run", 2, run_task},
+      {"pruebahilos", 5, run_elda_test},
 #ifdef FILESYS
       {"ls", 1, fsutil_ls},
       {"cat", 2, fsutil_cat},
