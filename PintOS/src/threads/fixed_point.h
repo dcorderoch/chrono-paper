@@ -3,6 +3,11 @@
 typedef int fixed_t;
 /* Bit shift amount to use for fixed point type. */
 #define FP_SHIFT_AMOUNT 16
+#define FP_INT_PART 15
+#define SHIFTED (1 << FP_SHIFT_AMOUNT)
+#if FP_SHIFT_AMOUNT + FP_INT_PART != 31
+#error "must add to 32 bits minus 1, for the sign bit"
+#endif
 
 /* Convert from integer to fixed point. */
 fixed_t fp_from_int (int integer );
