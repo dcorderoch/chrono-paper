@@ -290,6 +290,7 @@ run_elda_test (char ** argv)
   int i;
   for(i = 0; argv[i] != NULL ; i++)
     {
+      printf ("argv[%d] is:%s\n", i, argv[i]);
       number_of_arguments++;
     }
   printf ("the number of arguments was:%d\n", number_of_arguments);
@@ -298,15 +299,18 @@ run_elda_test (char ** argv)
       printf ("wrong number of arguments\n");
       shutdown_power_off ();
     }
-  if(!(strcmp (argv[0],"-t"))
-     || !(strcmp (argv[2],"-b"))
-     || !(strcmp (argv[2],"-p")))
+
+  if ((!strcmp(argv[1],"-t"))
+      && (!strcmp(argv[3],"-t") || !strcmp(argv[3],"-t")))
     {
       printf ("program was started incorrectly\n"); 
       shutdown_power_off ();
     }
-  int first_arg = atoi(argv[1]);
-  int second_arg = atoi(argv[3]);
+  int first_arg = atoi(argv[2]);
+  int second_arg = atoi(argv[4]);
+
+  printf ("first argument is:%d\n", first_arg);
+  printf ("second argument is:%d\n", second_arg);
 
   if(first_arg > 25)
     {
@@ -328,6 +332,9 @@ run_elda_test (char ** argv)
 
   int total_threads = first_arg;
   int io_threads = (is_percentage) ? first_arg * second_arg / 100 : second_arg ;
+
+  printf ("ok, sí llegó al final\n");
+  /* AQUI VA EL CODIGO DE PRUEBA */
 
   shutdown_power_off ();
 }
