@@ -553,9 +553,9 @@ thread_wakeup_ticks_less(const struct list_elem * a,
                          const struct list_elem * b,
                          void * aux UNUSED)
 {
-  struct thread * pta = list_entry (a, struct thread, elem);
-  struct thread * ptb = list_entry (b, struct thread, elem);
-  return pta->wakeup_ticks < ptb->wakeup_ticks;
+  struct thread * thread_a = list_entry (a, struct thread, elem);
+  struct thread * thread_b = list_entry (b, struct thread, elem);
+  return thread_a->wakeup_ticks < thread_b->wakeup_ticks;
 }
 
 /* Compare priority of two thread. */
