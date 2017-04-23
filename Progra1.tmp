@@ -32,6 +32,7 @@ No hacen falta controles de sincronización, el calendarizador se invoca cuando 
 
 
 ---- JUSTIFICACION ----
+
 La implementación de este algoritmo resulta fácil ya que se basa en el round-robin
 con las interrupciones desactivadas, esto hace que sean pocas líneas de código las que
 se deben cambiar para obtener el comportamiento deseado.
