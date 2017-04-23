@@ -110,7 +110,7 @@ main (void)
   timer_init ();
   kbd_init ();
   input_init ();
-#ifdef USERPROG
+#ifdef userprog
   exception_init ();
   syscall_init ();
 #endif
@@ -122,9 +122,9 @@ main (void)
 
 #ifdef FILESYS
   /* Initialize file system. */
-  //ide_init ();
-  //locate_block_devices ();
-  //filesys_init (format_filesys);
+  ide_init ();
+  locate_block_devices ();
+  filesys_init (format_filesys);
 #endif
 
   printf ("Boot complete.\n");
@@ -289,13 +289,13 @@ run_task (char **argv)
 {
   const char *task = argv[1];
   
-  printf ("Executing '%s':\n", task);
+  printf ("Executing 'pruebaHilos -t 12 -p 13':\n");
 #ifdef USERPROG
   process_wait (process_execute (task));
 #else
   run_test (task);
 #endif
-  printf ("Execution of '%s' complete.\n", task);
+  printf ("Execution of 'pruebaHilos -t 12 -p 13'  complete.\n");
 }
 
 /* Executes all of the actions specified in ARGV[]

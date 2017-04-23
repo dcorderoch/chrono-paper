@@ -12,6 +12,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -52,7 +53,7 @@ static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Scheduling. */
-#define QUANTUM 6            /* # of timer ticks to give each thread. */
+#define QUANTUM 4            /* # of timer ticks to give each thread. */
 static const fixed_t ALPHA= 0.5;/* # alpha factor used in sjf scheduler */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
@@ -315,6 +316,7 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
+  printf("Total waiting ticks of thread %d: %d\n", thread_current ()->tid, thread_current ()->wait_ticks);
   thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
@@ -502,6 +504,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   t->burst_time = 0;
+  t->wait_ticks = 0;
   list_push_back (&all_list, &t->allelem);
 }
 
@@ -593,6 +596,13 @@ void thread_func_print_tid(struct thread *t, void *aux UNUSED)
   printf("Thread %d in queue\n", t->tid);
 }
 
+
+/* Print thread's tid. */
+void print_average_waiting(struct thread *t, void *aux UNUSED)
+{
+  printf("Thread %d in queue\n", t->tid);
+}
+
 /* Compare burst time of two threads. */
 bool
   thread_burst_greater(const struct list_elem *a,
@@ -638,7 +648,10 @@ schedule (void)
   ASSERT (is_thread (next));
 
   if (cur != next)
+  {
+    next->wait_ticks+=thread_ticks;
     prev = switch_threads (cur, next);
+  }
   thread_schedule_tail (prev);
 }
 

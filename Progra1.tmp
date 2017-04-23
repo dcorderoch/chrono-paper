@@ -6,11 +6,141 @@
                    
 ---- GRUPO ----
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Manuel Zumbado Corrales <email@domain.example>
+David Cordero Chavaŕía <email@domain.example>
 
-Calendarizador <tipo de calendarizador>
+--- ALGORITMOS ----
+
+Estructuras de datos
+
+extern bool thread_fcfs
+
+Bandera que sirve para activar el calendarizador
+
+El calendarizador se implementa utilizando las colas ready_list
+y all_list. En all_list se ingresan todos los threads que se crean y 
+se eliminan cuando se ha terminado su ejecución. En ready_list, se mantienen
+los threads que están listos para ejecutarse. Se desactivó la interrupción del
+timer que provocaba que hiciera yield al procesador, para ello se utiliza la
+bandera que sirve para desactivar esta interrupción cuando se escoge el calendarizador
+fcfs. 
+
+
+---- SYNC ----
+
+No hacen falta controles de sincronización, el calendarizador se invoca cuando un thread termina su
+
+
+---- JUSTIFICACION ----
+La implementación de este algoritmo resulta fácil ya que se basa en el round-robin
+con las interrupciones desactivadas, esto hace que sean pocas líneas de código las que
+se deben cambiar para obtener el comportamiento deseado.
+
+Quizás no es la implementación mñás elegante, pero generó buenos resultados
+y su funcionamiento se pudo comprobar que es el correcto.
+___________________________________________________________________
+
+
+Calendarizador <Shortest Job First>
+=======================================
+
+---- Estructuras de datos ----
+
+extern bool thread_sjf
+
+Se activa con el parámetro -sjf.
+
+    int burst_time;                     /* Estimated execution time */
+    int wait_ticks;                     /* Ammount of waiting ticks*/
+
+Nuevas propiedades el struct thread.
+
+---- ALGORITMOS ----
+
+El Shortest Job First es un calendarizador ejecuta un proceso
+de acuerdo a su siguiente CPU burst esperado. Inicialmente, los threads tienen
+un burst de 0, pero conforme se van corriendo, se va calculando su estimación basada
+en el tiempo de duración anterior.
+
+
+
+t_n+1 = alpha * tn_stimated + (1 - alpha) * tn , donde:
+
+
+El valor se actualiza cuando el thread finaliza de ejecutar. Luego se hace
+un sort de la lista para establecer el orden de ejecución, y se procede
+a invocar el calendarizador.
+
+Esta implementación es del tipo no apropiativo, por lo tanto se desactivan
+las interrupciones generadas por el timer.
+
+Se utilizan las funciones
+
+bool thread_burst_greater(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+
+Como criterio para ordenar la lista.
+
+
+---- SYNC ----
+
+No hay consideraciones de sincronización.
+
+---- JUSTIFICACION ----
+
+
+La dificultad de esta algoritmo recae en que es muy díficil saber de antemano
+el tiempo que va a durar ejecutándose el thread, por ello se utilizan métodos
+de estimación para tratar de calcular este valor, sin embargo, no en todas los
+casos se adecúa a la realidad.
+Este algoritmo es útil cuando se ejecutan procesamiento por lotes y se tiene una idea
+de el tiempo que va a durar cada uno, en este caso resulta ser sumamente eficiente. 
+Algo que se debe notar es que, este algoritmo puede generar starvation de los threads
+que más duración tienen, si se agregan siempre trabajos más pequeños.
+
+
+___________________________________________________________________
+
+
+
+___________________________________________________________________
+
+
+Calendarizador <Round Robin>
+=======================================
+
+---- Estructuras de datos ----
+
+
+#define QUANTUM
+
+Se define una variable global para todos los threads, que contiene el
+valor del Quantum elegido para nuestro algoritmo.
+
+---- ALGORITMOS ----
+
+PintOS por defecto trae una implementación de éste algoritmo,
+por lo que gran parte de las funciones necesarias está hecha
+
+Ésta implementación consiste en conar ticks del temporizador
+distinto para cada thread, si un thread tiene más que el
+quantum, se llama thread_yield
+
+
+---- SYNC ----
+
+En éste algoritmo no se usan
+
+---- JUSTIFICACION ----
+
+Escogimos un quantum de 5 ticks con el fin de evitar el overhead 
+provocado por el cambio de contexto. Esta cantidad produjo buenos 
+resultados en las pruebas  realizadas, ya  que permite un mayor tiempo
+de ejecuci'on para   cada uno de los threads sin penalizar por el 
+cambio de contexto.
+
+
+
+Calendarizador <Advanced: BSD 4.4 scheduler, an example of a Multi-Level Feedbback Queue Scheduler>
 =======================================
 
 ---- Estructuras de datos ----
@@ -18,8 +148,18 @@ Calendarizador <tipo de calendarizador>
 >> Copie la declaracion de cada estructura nueva utilizada por su 
 codigo, variables globales o estaticas, `struct', `typedef', etc.
 
+typedef int fixed_t;
+
 >> Explique las estructuras citadas anteriormente en menos de 30 
 palabras cada una.
+
+tipo de dato para emular números de punto flotante
+según los anexos de la descripción del calendarizador
+avanzado de BSD4.4 basado en colas multinivel.
+
+más allá de ésto no fue necesario implementar estructuras, de datos
+pues con la estructura de lista proveida con PintOS, y algunas funciones
+de ordenamiento, se pueden emular colas, que son la única estructura necesaria
 
 
 ---- ALGORITMOS ----
@@ -27,6 +167,17 @@ palabras cada una.
 >> Explique en prosa el funcionamiento de su algoritmo, utilizando 
 el nombre de las variables utilizadas y funciones.
 
+se tiene una lista de todos los hilos que están listos para ejecutarse
+(ready_list) y en ésta se insertan los hilos ordenados por prioridad,
+además, cada segundo en timer.c se llama mlfqs_refresh que actualiza
+las prioridades de los hilos, para reordenar la cola según prioridad
+de mayor a menor
+
+la nueva prioridad se calcular usando la prioridad anterior,
+el tiempo reciente de cpu que se ha usado, y el `nice'
+
+el tiempo reciente del cpu se usa para evitar `starvation'
+pues, entre más alto sea, menor la prioridad calculada será
 
 ---- SYNC ----
 
@@ -34,6 +185,19 @@ el nombre de las variables utilizadas y funciones.
 thread_set_priority() y explique como su algoritmo lo resuelve. 
 Justifique por que un lock podria o no podria funcionar para este 
 algoritmo
+
+thread_set-priority ()
+se ejecuta cuando en los "estados de transición" de ejecución
+de los hilos, por lo que, podría ejecutarse justo en el instante
+en que un thread termina y debe tener su prioridad actualizada
+o en el que el siguiente thread comienza a correr, por lo que causaría
+que se actualice la prioridad del thread equivocado
+
+un lock podría funcionar si las operaciones de acceso a este son atómicas
+pero si no lo son no funcionarían, hay diferentes maneras de implementarlo
+y entre menos restricciones de hardware se tengan más complejas pueden ser,
+por ejemplo, usando locks y semáforos para un manejo más seguro de los accesos
+a costo de un poco de overhead
 
 ---- JUSTIFICACION ----
 >>Describa la razon por la que se decidio implementar este diseño 
@@ -43,4 +207,9 @@ algoritmo y describa como los cambios de contexto en este
 calendarizador y las reglas y politicas implementadas afectan el 
 desempeño del procesador.
 
-___________________________________________________________________
+dado que el sistema no ejecuta muchos hilos al mismo tiempo, se consideró
+innecesario usar una implementación con más de un nivel de colas
+éstas simplemente se insertan en una sóla estructura de datos,
+ésto pues se consideró que no se obtendría una gran ganancia en el
+rendimiento al hacer menos búsquedas con más estructuras, dado
+el relativamente bajo número de hilos._
