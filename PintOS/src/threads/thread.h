@@ -88,6 +88,8 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int burst_time;                     /* Estimated execution time */
+    int wait_ticks;                     /* Ammount of waiting ticks*/
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -102,9 +104,15 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
   };
 
-/* If false (default), use round-robin scheduler.
-   If true, use multi-level feedback queue scheduler.
-   Controlled by kernel command-line option "-o mlfqs". */
+
+
+/* If true, use fcfs scheduler. */
+extern bool thread_fcfs;
+/* If true, use sjf scheduler. */
+extern bool thread_sjf;
+/* If true, use round-robin scheduler. */
+extern bool thread_rr;
+/* If true, use mlfqs scheduler. */
 extern bool thread_mlfqs;
 
 void thread_init (void);
@@ -137,5 +145,8 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+bool thread_burst_greater(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
+void thread_print_init_queue (void);
+void thread_func_print_tid(struct thread *t, void *aux UNUSED);
 #endif /* threads/thread.h */

@@ -11,9 +11,9 @@
 #
 
 # CHANGE this line to install a P3/P4 kernel
-BUILDDIR=./userprog/build
+BUILDDIR=./threads/build
 EXAMPLEDIR=./examples
-DISKIMAGE=usbdisk.img
+DISKIMAGE=./userprog/build/usbdisk.img
 
 # check that BUILDDIR exists
 test -d ${BUILDDIR} || cat << EOF

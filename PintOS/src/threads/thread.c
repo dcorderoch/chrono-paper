@@ -1,4 +1,5 @@
 #include "threads/thread.h"
+#include "threads/fixed_point.h"
 #include <debug.h>
 #include <stddef.h>
 #include <random.h>
@@ -11,6 +12,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -51,12 +53,18 @@ static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Scheduling. */
-#define TIME_SLICE 4            /* # of timer ticks to give each thread. */
+#define QUANTUM 4            /* # of timer ticks to give each thread. */
+static const fixed_t ALPHA= 0.5;/* # alpha factor used in sjf scheduler */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
-/* If false (default), use round-robin scheduler.
-   If true, use multi-level feedback queue scheduler.
-   Controlled by kernel command-line option "-o mlfqs". */
+
+/* If true, use fcfs scheduler. */
+bool thread_fcfs;
+/* If true, use sjf scheduler. */
+bool thread_sjf;
+/* If true, use round-robin scheduler. */
+bool thread_rr;
+/* If true, use mlfqs scheduler. */
 bool thread_mlfqs;
 
 static void kernel_thread (thread_func *, void *aux);
@@ -110,6 +118,15 @@ thread_start (void)
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
+  if(thread_rr)
+    printf("Using round-robin scheduler\n");
+  else if(thread_fcfs)
+    printf("Using fcfs scheduler\n");
+  else if(thread_sjf)
+    printf("Using shortest job first scheduler\n");
+  else if(thread_mlfqs)
+    printf("Using mlfqs scheduler\n");
+
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
@@ -135,7 +152,7 @@ thread_tick (void)
     kernel_ticks++;
 
   /* Enforce preemption. */
-  if (++thread_ticks >= TIME_SLICE)
+  if (++thread_ticks >= QUANTUM)
     intr_yield_on_return ();
 }
 
@@ -299,6 +316,7 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
+  printf("Total waiting ticks of thread %d: %d\n", thread_current ()->tid, thread_current ()->wait_ticks);
   thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
@@ -338,6 +356,22 @@ thread_foreach (thread_action_func *func, void *aux)
       func (t, aux);
     }
 }
+
+
+/* Sets the thread's burst_time to new_time. */
+void
+thread_set_burst_time (struct thread *t, int new_time) 
+{
+  t->burst_time = new_time;
+}
+
+/* Returns the current thread's burst_time. */
+int
+thread_get_burst_time (void) 
+{
+  return thread_current ()->burst_time;
+}
+
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
@@ -469,6 +503,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->burst_time = 0;
+  t->wait_ticks = 0;
   list_push_back (&all_list, &t->allelem);
 }
 
@@ -545,6 +581,47 @@ thread_schedule_tail (struct thread *prev)
     }
 }
 
+/* Function to print the tid of all queued threads. */
+void thread_print_init_queue (void)
+{
+  enum intr_level old_level;
+  old_level = intr_disable ();
+  thread_foreach (&thread_func_print_tid, NULL);
+  intr_set_level(old_level);
+}
+
+/* Print thread's tid. */
+void thread_func_print_tid(struct thread *t, void *aux UNUSED)
+{
+  printf("Thread %d in queue\n", t->tid);
+}
+
+
+/* Print thread's tid. */
+void print_average_waiting(struct thread *t, void *aux UNUSED)
+{
+  printf("Thread %d in queue\n", t->tid);
+}
+
+/* Compare burst time of two threads. */
+bool
+  thread_burst_greater(const struct list_elem *a,
+                      const struct list_elem *b,
+                      void *aux UNUSED)
+{
+  struct thread *elementA = list_entry (a, struct thread, elem);
+  struct thread *elementB = list_entry (b, struct thread, elem);
+  return elementA->burst_time < elementB->burst_time;
+}
+
+/* Predict thread's burst time */
+int
+thread_burst_predict(struct thread *cur)
+{
+  fixed_t burst_time = fp_addition(fp_times_int (ALPHA, thread_ticks), fp_times_int(fp_minus_fp(fp_from_int(1), ALPHA), cur->burst_time));
+  return from_fp_round_nearest(burst_time);
+}
+
 /* Schedules a new process.  At entry, interrupts must be off and
    the running process's state must have been changed from
    running to some other state.  This function finds another
@@ -556,6 +633,13 @@ static void
 schedule (void) 
 {
   struct thread *cur = running_thread ();
+  if (thread_sjf && !list_empty(&ready_list))
+    {
+      int thread_burst = thread_burst_predict (cur); 
+      struct thread *thread_to_set_burst_time = list_entry( list_front (&ready_list), struct thread, elem);
+      thread_set_burst_time(thread_to_set_burst_time, thread_burst);
+      list_sort(&ready_list,thread_burst_greater, NULL);
+    }
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
 
@@ -564,7 +648,10 @@ schedule (void)
   ASSERT (is_thread (next));
 
   if (cur != next)
+  {
+    next->wait_ticks+=thread_ticks;
     prev = switch_threads (cur, next);
+  }
   thread_schedule_tail (prev);
 }
 
